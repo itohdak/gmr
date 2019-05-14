@@ -218,6 +218,69 @@ class MVN(object):
         width, height = factor * np.sqrt(vals)
         return angle, width, height
 
+    def to_ellipse3d(self, factor=1.0):
+        """Compute 3d error ellipse.
+
+        An 3d error ellipse shows equiprobable points.
+
+        Parameters
+        ----------
+        factor : float
+            One means standard deviation.
+
+        Returns
+        -------
+        angle : float
+            Rotation angle of the ellipse.
+
+        width : float
+            Width of the ellipse.
+
+        height : float
+            Height of the ellipse.
+        """
+        self._check_initialized()
+        vals, vecs = sp.linalg.eigh(self.covariance)
+        order = vals.argsort()[::-1]
+        vals, vecs = vals[order], vecs[:, order]
+        theta, phi = self.calc_angle3d(vecs)
+        u, v, w = factor * np.sqrt(vals)
+        return (theta, phi), (u, v, w)
+
+    def calc_angle3d(self, eigvecs):
+        ex = np.array([1, 0, 0])
+        ey = np.array([0, 1, 0])
+        ez = np.array([0, 0, 1])
+        u = eigvecs[:, 0]
+        vxy = u - np.dot(u, ez) * ez
+        theta = - np.arccos(np.dot(ex, vxy) / np.linalg.norm(vxy))
+        # if vxy[1] < 0:
+        #     theta = -theta
+        phi = np.pi / 2 - np.arccos(np.dot(ez, u) / np.linalg.norm(u))
+        return theta, phi
+
+    def to_axis(self, factor=1.0):
+        self._check_initialized()
+        vals, vecs = sp.linalg.eigh(self.covariance)
+        r = np.sqrt(np.dot(vals, vals))
+        order = vals.argsort()[::-1]
+        vals, vecs = vals[order], vecs[:, order]
+        mean = self.mean
+        res = []
+        principal_axes = []
+        for i in range(len(vals)):
+            v = vecs[i]
+            if i == 1:
+                v = v - np.dot(v, principal_axes[0]) * principal_axes[0]
+            elif i == 2:
+                v = np.cross(principal_axes[0],
+                             principal_axes[1])
+            v = v / np.sqrt(np.dot(v, v)) * factor
+            principal_axes.append(v)
+        return np.array(principal_axes)
+        #     res.append(np.concatenate([mean, mean+v]).reshape((2, -1)).T)
+        # return res
+
 
 def plot_error_ellipse(ax, mvn):
     """Plot error ellipse of MVN.

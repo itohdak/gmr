@@ -13,3 +13,5 @@ __all__ = ['gmm', 'mvn', 'utils']
 
 from .mvn import MVN, plot_error_ellipse
 from .gmm import GMM, plot_error_ellipses
+# from .mvn import MVN, plot_error_ellipse3d
+from .gmm import GMM, plot_error_ellipses3d, plot_axes

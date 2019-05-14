@@ -270,6 +270,41 @@ class GMM(object):
             res.append((self.means[k], mvn.to_ellipse(factor)))
         return res
 
+    def to_ellipses3d(self, factor=1.0):
+        """Compute error ellipses.
+
+        An error ellipse shows equiprobable points.
+
+        Parameters
+        ----------
+        factor : float
+            One means standard deviation.
+
+        Returns
+        -------
+        ellipses : array, shape (n_components, 3)
+            Parameters that describe the error ellipses of all components:
+            angles, widths and heights.
+        """
+        self._check_initialized()
+
+        res = []
+        for k in range(self.n_components):
+            mvn = MVN(mean=self.means[k], covariance=self.covariances[k],
+                      random_state=self.random_state)
+            res.append((self.means[k], mvn.to_ellipse3d(factor)))
+        return res
+
+    def to_axes(self, factor=1.0):
+        self._check_initialized()
+
+        res = []
+        for k in range(self.n_components):
+            mvn = MVN(mean=self.means[k], covariance=self.covariances[k],
+                      random_state=self.random_state)
+            res.append(mvn.to_axis(factor))
+        return res
+
 
 def plot_error_ellipses(ax, gmm, colors=None):
     """Plot error ellipses of GMM components.
@@ -294,3 +329,73 @@ def plot_error_ellipses(ax, gmm, colors=None):
             if colors is not None:
                 ell.set_color(next(colors))
             ax.add_artist(ell)
+
+def plot_error_ellipses3d(ax, gmm, colors=None):
+    """Plot error ellipses of GMM components.
+
+    Parameters
+    ----------
+    ax : axis
+        Matplotlib axis.
+
+    gmm : GMM
+        Gaussian mixture model.
+    """
+    from matplotlib.patches import Ellipse
+    from itertools import cycle
+    if colors is not None:
+        colors = cycle(colors)
+    for factor in [1.0]: # np.linspace(0.5, 4.0, 8):
+        for mean, (angles, dims) in gmm.to_ellipses3d(factor):
+            x, y, z = Ellipse3d(mean=mean, dims=dims,
+                                angles=angles)
+            if colors is not None:
+                ax.plot_surface(x, y, z, color=next(colors), alpha=0.3)
+            else:
+                ax.plot_surface(x, y, z, alpha=0.25)
+
+def plot_axes(ax, gmm, colors=None, factor=1.0):
+    from itertools import cycle
+    if colors is not None:
+        colors = cycle(colors)
+    for mean, axis in zip(gmm.means, gmm.to_axes(factor)):
+    # for axis in gmm.to_axes(factor):
+        for a in axis:
+            # x, y, z = a[0], a[1], a[2]
+            XYZ = np.concatenate([mean, mean+a]).reshape((2, -1)).T
+            x = XYZ[0]
+            y = XYZ[1]
+            z = XYZ[2]
+            # print(x, y, z)
+            if colors is not None:
+                ax.plot(x, y, z, "-", linewidth=5.0, color=next(colors), alpha=0.3)
+            else:
+                ax.plot(x, y, z, "-", linewidth=5.0, alpha=0.25)
+
+def Ellipse3d(mean, dims, angles, num=100):
+    """
+    Plot an 3d ellipse
+    """
+    uu = np.linspace(0, 2 * np.pi, num)
+    vv = np.linspace(0, np.pi, num)
+    x = dims[0] * np.outer(np.cos(uu), np.sin(vv))
+    y = dims[1] * np.outer(np.sin(uu), np.sin(vv))
+    z = dims[2] * np.outer(np.ones_like(uu), np.cos(vv))
+    xyz = np.vstack([x.reshape(1,-1), y.reshape(1,-1), z.reshape(1,-1)])
+    theta, phi = angles
+    R_theta = np.array([[np.cos(theta), np.sin(theta), 0],
+                        [-np.sin(theta), np.cos(theta), 0],
+                        [0, 0, 1]])
+    R_phi = np.array([[1, 0, 0],
+                      [0, np.cos(phi), np.sin(phi)],
+                      [0, -np.sin(phi), np.cos(phi)]])
+    R = np.dot(R_phi, R_theta)
+    xyz = np.dot(R, xyz)
+    x = xyz[0].reshape(num, num)
+    y = xyz[1].reshape(num, num)
+    z = xyz[2].reshape(num, num)
+    x = x + mean[0]
+    y = y + mean[1]
+    z = z + mean[2]
+    return x, y, z
+
