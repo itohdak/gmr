@@ -80,3 +80,4 @@ def pinvh(a, cond=None, rcond=None, lower=True):
     psigma_diag[above_cutoff] = 1.0 / s[above_cutoff]
 
     return np.dot(u * psigma_diag, np.conjugate(u).T)
+

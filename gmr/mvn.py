@@ -252,34 +252,22 @@ class MVN(object):
         ey = np.array([0, 1, 0])
         ez = np.array([0, 0, 1])
         u = eigvecs[:, 0]
+        u = u / np.linalg.norm(u)
+        v = eigvecs[:, 1]
+        v = v / np.linalg.norm(v)
         vxy = u - np.dot(u, ez) * ez
-        theta = - np.arccos(np.dot(ex, vxy) / np.linalg.norm(vxy))
-        # if vxy[1] < 0:
-        #     theta = -theta
-        phi = np.pi / 2 - np.arccos(np.dot(ez, u) / np.linalg.norm(u))
+        vxy = vxy / np.linalg.norm(vxy)
+        theta = np.arctan2(1., np.dot(ex, vxy))
+        phi = - np.arctan2(1., np.dot(vxy, u))
         return theta, phi
 
     def to_axis(self, factor=1.0):
         self._check_initialized()
         vals, vecs = sp.linalg.eigh(self.covariance)
-        r = np.sqrt(np.dot(vals, vals))
         order = vals.argsort()[::-1]
         vals, vecs = vals[order], vecs[:, order]
-        mean = self.mean
-        res = []
-        principal_axes = []
-        for i in range(len(vals)):
-            v = vecs[i]
-            if i == 1:
-                v = v - np.dot(v, principal_axes[0]) * principal_axes[0]
-            elif i == 2:
-                v = np.cross(principal_axes[0],
-                             principal_axes[1])
-            v = v / np.sqrt(np.dot(v, v)) * factor
-            principal_axes.append(v)
-        return np.array(principal_axes)
-        #     res.append(np.concatenate([mean, mean+v]).reshape((2, -1)).T)
-        # return res
+        r = np.sqrt(np.dot(vals, vals))
+        return factor * (vecs.T * np.sqrt(vals)).T
 
 
 def plot_error_ellipse(ax, mvn):

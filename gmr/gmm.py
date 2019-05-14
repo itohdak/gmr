@@ -359,18 +359,15 @@ def plot_axes(ax, gmm, colors=None, factor=1.0):
     if colors is not None:
         colors = cycle(colors)
     for mean, axis in zip(gmm.means, gmm.to_axes(factor)):
-    # for axis in gmm.to_axes(factor):
         for a in axis:
-            # x, y, z = a[0], a[1], a[2]
             XYZ = np.concatenate([mean, mean+a]).reshape((2, -1)).T
             x = XYZ[0]
             y = XYZ[1]
             z = XYZ[2]
-            # print(x, y, z)
             if colors is not None:
-                ax.plot(x, y, z, "-", linewidth=5.0, color=next(colors), alpha=0.3)
+                ax.plot(x, y, z, "-", linewidth=1.0, color=next(colors), alpha=0.5)
             else:
-                ax.plot(x, y, z, "-", linewidth=5.0, alpha=0.25)
+                ax.plot(x, y, z, "-", linewidth=1.0, alpha=0.5)
 
 def Ellipse3d(mean, dims, angles, num=100):
     """
@@ -383,17 +380,19 @@ def Ellipse3d(mean, dims, angles, num=100):
     z = dims[2] * np.outer(np.ones_like(uu), np.cos(vv))
     xyz = np.vstack([x.reshape(1,-1), y.reshape(1,-1), z.reshape(1,-1)])
     theta, phi = angles
+    print(theta * 180 / np.pi, phi * 180 / np.pi)
     R_theta = np.array([[np.cos(theta), np.sin(theta), 0],
                         [-np.sin(theta), np.cos(theta), 0],
                         [0, 0, 1]])
-    R_phi = np.array([[1, 0, 0],
-                      [0, np.cos(phi), np.sin(phi)],
-                      [0, -np.sin(phi), np.cos(phi)]])
-    R = np.dot(R_phi, R_theta)
+    R_phi = np.array([[np.cos(phi), 0, -np.sin(phi)],
+                      [0, 1, 0],
+                      [np.sin(phi), 0, np.cos(phi)]])
+    # R = np.dot(R_phi, R_theta)
+    R = np.dot(R_theta, R_phi)
     xyz = np.dot(R, xyz)
-    x = xyz[0].reshape(num, num)
-    y = xyz[1].reshape(num, num)
-    z = xyz[2].reshape(num, num)
+    x = xyz[0].reshape((num, num))
+    y = xyz[1].reshape((num, num))
+    z = xyz[2].reshape((num, num))
     x = x + mean[0]
     y = y + mean[1]
     z = z + mean[2]
